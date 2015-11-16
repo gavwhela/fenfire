@@ -31,7 +31,7 @@ module Preprocessor.Hsx.ParseMonad(
 	) where
 
 import Preprocessor.Hsx.Syntax(SrcLoc(..))
-
+import Control.Monad (ap,liftM)
 import Data.List ( intersperse )
 
 -- | The result of a parse.
@@ -100,8 +100,15 @@ runParserWithMode mode (P m) s = case m s 0 1 start ([],[]) mode of
 runParser :: P a -> String -> ParseResult a
 runParser = runParserWithMode defaultParseMode
 
+instance Functor P where
+    fmap = liftM
+
+instance Applicative P where
+    pure = \a -> P $ \_i _x _y _l s _m -> Ok s a
+    (<*>) = ap
+
 instance Monad P where
-	return a = P $ \_i _x _y _l s _m -> Ok s a
+	return = pure
 	P m >>= k = P $ \i x y l s mode ->
 		case m i x y l s mode of
 		    Failed loc msg -> Failed loc msg
@@ -174,10 +181,18 @@ popExtContext = P $ \_i _x _y _l (s, e) _m ->
 
 newtype Lex r a = Lex { runL :: (a -> P r) -> P r }
 
+instance Functor (Lex r) where
+    fmap = liftM
+
+instance Applicative (Lex r) where
+    pure = \a -> Lex $ \k -> k a
+    (<*>) = ap
+    Lex v *> Lex w = Lex $ \k -> v (\_ -> w k)
+
 instance Monad (Lex r) where
-	return a = Lex $ \k -> k a
+	return = pure
 	Lex v >>= f = Lex $ \k -> v (\a -> runL (f a) k)
-	Lex v >> Lex w = Lex $ \k -> v (\_ -> w k)
+        (>>) = (*>)
 	fail s = Lex $ \_ -> fail s
 
 -- Operations on this monad

@@ -20,7 +20,7 @@ module Preprocessor.Hsx.Transform (
 import Preprocessor.Hsx.Syntax
 import Preprocessor.Hsx.Build
 import Data.List (union)
-
+import Control.Monad (liftM, ap)
 import Debug.Trace (trace)
 
 -----------------------------------------------------------------------------
@@ -29,21 +29,42 @@ import Debug.Trace (trace)
 
 newtype HsxM a = MkHsxM (HsxState -> (a, HsxState))
 
+--instance Monad HsxM where
+-- return x = MkHsxM (\s -> (x,s))
+-- (MkHsxM f) >>= k = MkHsxM (\s -> let (a, s') = f s
+--				      (MkHsxM f') = k a
+--				   in f' s')
+--
+--instance Functor HsxM where
+-- fmap f hma = do a <- hma
+--		 return $ f a
+--
+--instance Applicative HsxM where
+--    pure = return
+--    (<*>) = ap
+
 instance Monad HsxM where
- return x = MkHsxM (\s -> (x,s))
+ return = pure
  (MkHsxM f) >>= k = MkHsxM (\s -> let (a, s') = f s
 				      (MkHsxM f') = k a
 				   in f' s')
+ (>>) = (*>)
+
+instance Functor HsxM where
+    fmap = liftM
+ 
+instance Applicative HsxM where
+    pure = \x -> MkHsxM (\s -> (x,s))
+    (<*>) = ap
+    -- Could be wrong, is not used, I think
+    (MkHsxM f) *> (MkHsxM f') = MkHsxM (\s -> let (_, s') = f s
+                                              in f' s')
 
 getHsxState :: HsxM HsxState
 getHsxState = MkHsxM (\s -> (s, s))
 
 setHsxState :: HsxState -> HsxM ()
 setHsxState s = MkHsxM (\_ -> ((),s))
-
-instance Functor HsxM where
- fmap f hma = do a <- hma
-		 return $ f a
 
 -----
 
@@ -560,14 +581,22 @@ type RNState = Int
 initRNState = 0
 
 instance Monad RN where
- return a = RN $ \s -> (a,s)
- (RN f) >>= k = RN $ \s -> let (a,s') = f s
- 			       (RN g) = k a
- 			    in g s'
+    return = pure
+    (RN f) >>= k = RN $ \s -> let (a,s') = f s
+ 			          (RN g) = k a
+ 			      in g s'
+    (>>) = (*>)
 
 instance Functor RN where
- fmap f rna = do a <- rna
- 		 return $ f a
+    fmap = liftM
+
+instance Applicative RN where
+    pure = \a -> RN $ \s -> (a,s)
+    (<*>) = ap
+    -- Same as last thing, not used, probably not right
+    (RN f) *> (RN g) = RN $ \s -> let (_,s') = f s
+                                  in g s'
+    
 
 
 runRename :: RN a -> a
@@ -736,15 +765,23 @@ type State = (Int, Int, Int, [Guard], [Guard], [HsDecl])
 newtype Tr a = Tr (State -> HsxM (a, State))
 
 instance Monad Tr where
- return a = Tr $ \s -> return (a, s)
+ return = pure
+ (>>) = (*>)
  (Tr f) >>= k = Tr $ \s ->
  		  do (a, s') <- f s
  		     let (Tr f') = k a
  		     f' s'
 
 instance Functor Tr where
- fmap f tra = tra >>= (return . f)
+    fmap = liftM
 
+instance Applicative Tr where
+    pure = \a -> Tr $ \s -> return (a, s)
+    (<*>) = ap
+    (Tr f) *> (Tr f') = Tr $ \s ->
+                          do (a, s') <- f s
+                             f' s'
+              
 liftTr :: HsxM a -> Tr a
 liftTr hma = Tr $ \s -> do a <- hma
 			   return (a, s)

@@ -38,7 +38,7 @@ Data-Files: data-files/logo.svg data-files/icon16.png
 Executable: fenfire
 Main-Is: Fenfire/Main.hs
 Extra-Libraries: raptor
-GHC-Options:  -main-is Fenfire.Main.main
+GHC-Options:  -main-is Fenfire.Main.main -fno-warn-tabs
 
 Other-Modules:
   Fenfire

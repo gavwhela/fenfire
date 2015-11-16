@@ -25,7 +25,7 @@ module Preprocessor.Hsx.Pretty (
 		PPHsMode(..), Indent, PPLayout(..), defaultMode) where
 
 import Preprocessor.Hsx.Syntax
-
+import Control.Monad (liftM, ap)
 import qualified Text.PrettyPrint as P
 
 infixl 5 $$$
@@ -91,12 +91,17 @@ defaultMode = PPHsMode{
 newtype DocM s a = DocM (s -> a)
 
 instance Functor (DocM s) where
-	 fmap f xs = do x <- xs; return (f x)
+	 fmap = liftM
+
+instance Applicative (DocM s) where
+    pure  = retDocM
+    (<*>) = ap
+    (*>)  = then_DocM
 
 instance Monad (DocM s) where
 	(>>=) = thenDocM
-	(>>) = then_DocM
-	return = retDocM
+	(>>) = (*>)
+	return = pure
 
 {-# INLINE thenDocM #-}
 {-# INLINE then_DocM #-}

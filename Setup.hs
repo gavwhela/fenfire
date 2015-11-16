@@ -24,7 +24,7 @@ trhsx = ("fhs", f) where
             [tIn, tOut] <- mapM getModificationTime [pIn, pOut]
             return (tIn > tOut)
         when runHappy $ system ("happy "++pIn) >> return ()
-        system ("ghc --make Preprocessor/Main.hs -o preprocessor")
+        system ("ghc --make Preprocessor/Main.hs -o preprocessor -outputdir preprocessor-build/ -fno-warn-tabs")
 
         when (verbosity >= verbose) $
             putStrLn ("preprocessing "++(combine inFileBaseDir inFile)++" to "++(combine outFileBaseDir outFile))
@@ -32,4 +32,3 @@ trhsx = ("fhs", f) where
                            " instead.\n")
         system ("./preprocessor "++(combine inFileBaseDir inFile)++" >> "++(combine outFileBaseDir outFile))
         return ()}
-
