@@ -161,8 +161,15 @@ execBreadthT :: Monad m => BreadthT m a -> m ()
 execBreadthT m = do rest <- execWriterT (runBreadthT m)
                     when (not $ null rest) $ execBreadthT (sequence_ rest)
 
+instance Monad m => Functor (BreadthT m) where
+    fmap = liftM
+
+instance Monad m => Applicative (BreadthT m) where
+    pure = BreadthT . return
+    (<*>) = ap
+
 instance Monad m => Monad (BreadthT m) where
-    return  = BreadthT . return
+    return  = pure
     m >>= f = BreadthT (runBreadthT m >>= runBreadthT . f)
     
 instance MonadTrans BreadthT where
@@ -184,8 +191,20 @@ instance MonadWriter w m => MonadWriter w (BreadthT m) where
 
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
 
+instance Monad m => Functor (MaybeT m) where
+    fmap = liftM
+
+instance Monad m => Applicative (MaybeT m) where
+    pure = \x -> MaybeT $ return (Just x)
+    (<*>) = ap
+
+instance Monad m => Alternative (MaybeT m) where
+    empty = MaybeT $ return Nothing
+    m <|> n = MaybeT $ do
+                x <- runMaybeT m; maybe (runMaybeT n) (return . Just) x
+
 instance Monad m => Monad (MaybeT m) where
-    return x = MaybeT $ return (Just x)
+    return   = pure
     m >>= f  = MaybeT $ do x <- runMaybeT m
                            maybe (return Nothing) (runMaybeT . f) x
     fail _   = mzero
@@ -193,10 +212,7 @@ instance Monad m => Monad (MaybeT m) where
 instance MonadTrans MaybeT where
     lift m = MaybeT $ do x <- m; return (Just x)
 
-instance Monad m => MonadPlus (MaybeT m) where
-    mzero = MaybeT $ return Nothing
-    mplus m n = MaybeT $ do
-        x <- runMaybeT m; maybe (runMaybeT n) (return . Just) x
+instance Monad m => MonadPlus (MaybeT m)
         
 instance MonadReader r m => MonadReader r (MaybeT m) where
     ask = lift ask

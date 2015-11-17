@@ -23,12 +23,12 @@ module Fenfire.Raptor where
 import Foreign (Ptr, FunPtr, IntPtr, Storable(pokeByteOff, peekByteOff), 
                 allocaBytes, nullPtr, castPtr, freeHaskellFunPtr, malloc, peek)
 import Foreign.C (CString, castCharToCChar, CFile,
-                  CSize, CULong, CInt, CUInt, CUChar, CChar, peekCStringLen)
+                  CSize(..), CULong(..), CInt(..), CUInt, CUChar, CChar(..), peekCStringLen)
                   
 import Data.ByteString (ByteString, useAsCStringLen, packCStringLen)
 
 import System.Posix.IO (stdOutput)
-import System.Posix.Types (Fd)
+import System.Posix.Types (Fd(..))
 import System.Environment (getArgs)
 
 import Control.Monad (when)

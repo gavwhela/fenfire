@@ -1,4 +1,4 @@
-{-# LANGUAGE OverlappingInstances, DoRec, TypeSynonymInstances, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE OverlappingInstances, RecursiveDo, TypeSynonymInstances, FlexibleInstances, MultiParamTypeClasses #-}
 module Fenfire.Vobs where
 
 -- Copyright (c) 2006-2007, Benja Fallenstein, Tuukka Hastrup
@@ -436,7 +436,8 @@ vobCanvas stateRef view eventHandler actionHandler stateChanged
 
     onKeyPress canvas $ \event -> do
         let E.Key {E.eventModifier=mods,E.eventKeyName=key,E.eventKeyChar=char} = event
-        putStrLn $ show mods++" "++key++" ("++show char++")"
+        -- TODO maybe uncomment this?
+        --putStrLn $ show mods++" "++key++" ("++show char++")"
 
         handleEvent event
 

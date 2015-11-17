@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module FunctorSugar where
 
+import Prelude hiding (traverse)
+
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Writer

@@ -1,4 +1,4 @@
-{-# LANGUAGE DoRec, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE RecursiveDo, TypeSynonymInstances, FlexibleInstances #-}
 module Fenfire.Cache where
 
 -- Copyright (c) 2007, Benja Fallenstein, Tuukka Hastrup
@@ -22,8 +22,8 @@ module Fenfire.Cache where
 import Fenfire.Utils
 
 import Data.Bits
-import Data.HashTable (HashTable)
-import qualified Data.HashTable as HashTable
+import Fenfire.HashTable (HashTable)
+import qualified Fenfire.HashTable as HashTable
 import Data.Int
 import Data.IORef
 import Data.Map (Map)

@@ -30,6 +30,7 @@ Build-Depends:
  ,directory
  ,process
  ,random
+ ,network-uri
 
 
 build-type: Custom

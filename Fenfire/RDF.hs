@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeOperators, ImplicitParams,ScopedTypeVariables,MultiParamTypeClasses,FunctionalDependencies, FlexibleInstances, FlexibleContexts, UndecidableInstances, DeriveDataTypeable, OverlappingInstances,PatternGuards #-}
+{-# LANGUAGE TypeOperators, ImplicitParams,ScopedTypeVariables,MultiParamTypeClasses,FunctionalDependencies, FlexibleInstances, FlexibleContexts, UndecidableInstances, DeriveDataTypeable, OverlappingInstances,PatternGuards, DataKinds, PolyKinds #-}
 
 module Fenfire.RDF where
 
@@ -41,6 +41,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 import Data.HList
+--import Data.HList.CommonMain
 
 import Network.URI hiding (query)
 
@@ -176,7 +177,7 @@ instance ToGraph [x] => ToGraph (Set x) where
 instance ToGraph [x] => ToGraph x where toGraph d x = toGraph d [x]
 
 mergeGraphs :: Op Graph -- note: default graph and namespaces come from left
-mergeGraphs g h = foldr insertQuad g (fromGraph h)
+mergeGraphs g h = foldr insertQuad g ((fromGraph h) :: Set Quad)
 
 relativizeURI :: String -> Endo String
 relativizeURI baseURI s = fromMaybe s $ do
@@ -212,7 +213,7 @@ delete :: Triple -> Endo Graph
 delete (s,p,o) = delete' (s,p,o,Dft)
 
 delete' :: Pattern pat [Quad] => pat -> Endo Graph
-delete' pat g = foldr deleteQuad g (query pat g)
+delete' pat g = foldr deleteQuad g ((query pat g) :: [Quad])
     
 update :: Triple -> Endo Graph
 update (s,p,o) = insert (s,p,o) . delete' (s,p,Any,Dft)
@@ -451,34 +452,67 @@ quadGraph (_,_,_,g) = g
 
 data Graph = Graph { defaultGraph :: Node
                    , graphNamespaces :: Namespaces
-                   , graphViews :: Map (Node, Node, Node, Node) (Set Quad)
-                               :*: Map (Node, Node, Node, Any)  (Set Quad)
-                               :*: Map (Node, Node, Any,  Node) (Set Quad)
-                               :*: Map (Node, Node, Any,  Any)  (Set Quad)
-                               :*: Map (Node, Any,  Node, Node) (Set Quad)
-                               :*: Map (Node, Any,  Node, Any)  (Set Quad)
-                               :*: Map (Node, Any,  Any,  Node) (Set Quad)
-                               :*: Map (Node, Any,  Any,  Any)  (Set Quad)
-                               :*: Map (Any,  Node, Node, Node) (Set Quad)
-                               :*: Map (Any,  Node, Node, Any)  (Set Quad)
-                               :*: Map (Any,  Node, Any,  Node) (Set Quad)
-                               :*: Map (Any,  Node, Any,  Any)  (Set Quad)
-                               :*: Map (Any,  Any,  Node, Node) (Set Quad)
-                               :*: Map (Any,  Any,  Node, Any)  (Set Quad)
-                               :*: Map (Any,  Any,  Any,  Node) (Set Quad)
-                               :*: Map (Any,  Any,  Any,  Any)  (Set Quad)
-                               :*: HNil -- use some simple TH for this? :-)
+                   , graphViews :: HList '[ Map (Node, Node, Node, Node) (Set Quad)
+                                          , Map (Node, Node, Node, Any)  (Set Quad)
+                                          , Map (Node, Node, Any,  Node) (Set Quad)
+                                          , Map (Node, Node, Any,  Any)  (Set Quad)
+                                          , Map (Node, Any,  Node, Node) (Set Quad)
+                                          , Map (Node, Any,  Node, Any)  (Set Quad)
+                                          , Map (Node, Any,  Any,  Node) (Set Quad)
+                                          , Map (Node, Any,  Any,  Any)  (Set Quad)
+                                          , Map (Any,  Node, Node, Node) (Set Quad)
+                                          , Map (Any,  Node, Node, Any)  (Set Quad)
+                                          , Map (Any,  Node, Any,  Node) (Set Quad)
+                                          , Map (Any,  Node, Any,  Any)  (Set Quad)
+                                          , Map (Any,  Any,  Node, Node) (Set Quad)
+                                          , Map (Any,  Any,  Node, Any)  (Set Quad)
+                                          , Map (Any,  Any,  Any,  Node) (Set Quad)
+                                          , Map (Any,  Any,  Any,  Any)  (Set Quad) ]
+--                   , graphViews :: Map (Node, Node, Node, Node) (Set Quad)
+--                               :*: Map (Node, Node, Node, Any)  (Set Quad)
+--                               :*: Map (Node, Node, Any,  Node) (Set Quad)
+--                               :*: Map (Node, Node, Any,  Any)  (Set Quad)
+--                               :*: Map (Node, Any,  Node, Node) (Set Quad)
+--                               :*: Map (Node, Any,  Node, Any)  (Set Quad)
+--                               :*: Map (Node, Any,  Any,  Node) (Set Quad)
+--                               :*: Map (Node, Any,  Any,  Any)  (Set Quad)
+--                               :*: Map (Any,  Node, Node, Node) (Set Quad)
+--                               :*: Map (Any,  Node, Node, Any)  (Set Quad)
+--                               :*: Map (Any,  Node, Any,  Node) (Set Quad)
+--                               :*: Map (Any,  Node, Any,  Any)  (Set Quad)
+--                               :*: Map (Any,  Any,  Node, Node) (Set Quad)
+--                               :*: Map (Any,  Any,  Node, Any)  (Set Quad)
+--                               :*: Map (Any,  Any,  Any,  Node) (Set Quad)
+--                               :*: Map (Any,  Any,  Any,  Any)  (Set Quad)
+--                               :*: HNil -- use some simple TH for this? :-)
                    } deriving (Eq, Typeable)
                    
 instance Show Graph where
     show g@(Graph d ns _) = "setNamespaces " ++ show ns ++ " (toGraph " ++
                             show d++" "++show (fromGraph g :: [Quad])++")"
                    
-instance (Empty x, Empty xs) => Empty (HCons x xs) where 
-    empty = HCons empty empty
-instance Empty HNil where empty = HNil
+--instance (Empty x, Empty xs) => Empty (HCons x xs) where 
+--    empty = HCons empty empty
+--instance Empty HNil where empty = HNil
 
-emptyGraph d = Graph d defaultNamespaces empty
+-- Terrible, just terrible
+emptyGraph d = Graph d defaultNamespaces (Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          Map.empty `HCons`
+                                          HNil)
 
 simpleQuery pattern g = 
     Map.findWithDefault Set.empty pattern $ hOccursFst (graphViews g)
@@ -570,16 +604,16 @@ instance PatternSlot Any where toPatternSlot _ = Any
 newtype InsertQuad = InsertQuad Quad; newtype DeleteQuad = DeleteQuad Quad
 
 instance (PatternSlot s, PatternSlot p, PatternSlot o, PatternSlot g) => 
-         Apply InsertQuad (Map (s,p,o,g) (Set Quad)) 
-                          (Map (s,p,o,g) (Set Quad)) where
-    apply (InsertQuad (s,p,o,g)) =
+         ApplyAB InsertQuad (Map (s,p,o,g) (Set Quad)) 
+                            (Map (s,p,o,g) (Set Quad)) where
+    applyAB (InsertQuad (s,p,o,g)) =
       updateWithDefault Set.empty (Set.insert (s,p,o,g))
         (toPatternSlot s, toPatternSlot p, toPatternSlot o, toPatternSlot g)
 
 instance (PatternSlot s, PatternSlot p, PatternSlot o, PatternSlot g) => 
-         Apply DeleteQuad (Map (s,p,o,g) (Set Quad)) 
-                          (Map (s,p,o,g) (Set Quad)) where
-    apply (DeleteQuad (s,p,o,g)) =
+         ApplyAB DeleteQuad (Map (s,p,o,g) (Set Quad)) 
+                            (Map (s,p,o,g) (Set Quad)) where
+    applyAB (DeleteQuad (s,p,o,g)) =
       updateWithDefault Set.empty (Set.delete (s,p,o,g))
         (toPatternSlot s, toPatternSlot p, toPatternSlot o, toPatternSlot g)
 

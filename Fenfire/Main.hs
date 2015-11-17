@@ -52,6 +52,8 @@ import Graphics.UI.Gtk hiding (Color, get, disconnect,
 import Graphics.UI.Gtk.ModelView as New
 import Graphics.UI.Gtk.Gdk.Events as E
 
+import System.Glib.UTFString (glibToString, stringToGlib)
+
 import qualified Network.URI
 
 import System.Directory (canonicalizePath)
@@ -138,9 +140,9 @@ confirmFix _ False _ action = action
 confirmFix title True fixaction action = do
     response <- liftIO $ do
         dialog <- makeDialog title
-            [(stockCancel, ResponseCancel),
-             (stockNo,     ResponseReject),
-             (stockYes,    ResponseAccept)]
+            [(glibToString stockCancel, ResponseCancel),
+             (glibToString stockNo,     ResponseReject),
+             (glibToString stockYes,    ResponseAccept)]
             ResponseAccept
 
         response' <- dialogRun dialog
@@ -169,8 +171,8 @@ confirmString :: (?vs :: ViewSettings, ?pw :: Window) =>
 confirmString title preset action = do
     (response,text) <- liftIO $ do 
         dialog <- makeDialog title
-            [(stockCancel, ResponseCancel),
-             (stockApply, ResponseAccept)]
+            [(glibToString stockCancel, ResponseCancel),
+             (glibToString stockApply, ResponseAccept)]
             ResponseAccept
         entry <- entryNew
         set entry [ entryText := preset, entryActivatesDefault := True ]
@@ -187,7 +189,8 @@ handleEvent :: (?vs :: ViewSettings, ?pw :: Window, ?views :: Views,
                 ?uriMaker :: URIMaker) => Handler Event FenState
 handleEvent (Key { E.eventModifier=_mods, E.eventKeyName=key }) = do
     state <- get; let graph = fsGraph state; fileName = fsFilePath state
-    case key of 
+    let skey = glibToString key
+    case skey of 
         x | x == "Up"    || x == "i"     -> handleAction "up"
         x | x == "Down"  || x == "comma" -> handleAction "down"
         x | x == "Left"  || x == "j"     -> handleAction "left"
@@ -738,15 +741,15 @@ makeConfirmUnsavedDialog :: (?pw :: Window) => IO Dialog
 makeConfirmUnsavedDialog = do 
     makeDialog "Confirm unsaved changes" 
         [("_Discard changes", ResponseClose),
-         (stockCancel, ResponseCancel),
-         (stockSave, ResponseAccept)]
+         (glibToString stockCancel, ResponseCancel),
+         (glibToString stockSave, ResponseAccept)]
         ResponseAccept
 
 makeConfirmRevertDialog :: (?pw :: Window) => IO Dialog
 makeConfirmRevertDialog = do
     makeDialog "Confirm revert"
-        [(stockCancel, ResponseCancel),
-         (stockRevertToSaved,ResponseClose)]
+        [(glibToString stockCancel, ResponseCancel),
+         (glibToString stockRevertToSaved,ResponseClose)]
         ResponseCancel
 
 makeMessageDialog primary secondary = do
